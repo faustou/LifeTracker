@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, ChevronDown } from 'lucide-react'
-import { startOfWeek, format } from 'date-fns'
+import { startOfWeek, endOfWeek, format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import TarjetaActividad from './TarjetaActividad'
 import ModalActividad from './ModalActividad'
 import { useAppStore } from '@/stores/useAppStore'
@@ -16,8 +17,13 @@ export default function PanelActividades({ modoMobile, expandido, onExpandir, on
   const { actividades, completados } = useAppStore()
 
   // Siempre mostrar progreso de la semana donde cae hoy (independiente del mes visible)
-  const inicioSemanaHoy = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const hoy = new Date()
+  const inicioSemana = startOfWeek(hoy, { weekStartsOn: 1 })
+  const finSemana = endOfWeek(hoy, { weekStartsOn: 1 })
+  const inicioSemanaHoy = format(inicioSemana, 'yyyy-MM-dd')
   const completadosSemana = completados.filter(c => c.inicio_semana === inicioSemanaHoy)
+
+  const etiquetaSemana = `Semana del ${format(inicioSemana, "d", { locale: es })} al ${format(finSemana, "d 'de' MMMM", { locale: es })}`
   const [modalAbierto, setModalAbierto] = useState(false)
   const [actividadEditandoId, setActividadEditandoId] = useState<string | null>(null)
 
@@ -103,17 +109,20 @@ export default function PanelActividades({ modoMobile, expandido, onExpandir, on
 
   return (
     <aside className="w-72 shrink-0 flex flex-col border-r border-gray-800 bg-gray-900">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-          Actividades
-        </h2>
-        <button
-          onClick={abrirCrear}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors"
-        >
-          <Plus size={12} />
-          Nueva
-        </button>
+      <div className="px-4 pt-3 pb-2 border-b border-gray-800">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+            Actividades
+          </h2>
+          <button
+            onClick={abrirCrear}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors"
+          >
+            <Plus size={12} />
+            Nueva
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mt-1 capitalize">{etiquetaSemana}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">

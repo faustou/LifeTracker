@@ -1,49 +1,34 @@
-import { format, isToday, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
-import type { ConfiguracionUsuario } from '@/tipos'
 
 interface Props {
-  fecha: string
-  configuracion: ConfiguracionUsuario | null
-  horasUsadas: number
+  horasRestantes: number | null
+  textoColor: string
+  fondoColor: string
   esDelMes?: boolean
 }
 
-export default function CabeceraDia({ fecha, configuracion, horasUsadas, esDelMes = true }: Props) {
-  const fechaObj = parseISO(fecha)
-  const esHoy = isToday(fechaObj)
-  const numeroDia = format(fechaObj, 'd')
+export default function CabeceraDia({ horasRestantes, textoColor, fondoColor, esDelMes = true }: Props) {
+  if (!esDelMes) return null
 
-  const horasLibres = configuracion && esDelMes
-    ? Math.max(0, 24 - configuracion.horas_sueno - configuracion.horas_trabajo - horasUsadas)
+  const horasStr = horasRestantes !== null
+    ? (horasRestantes > 0
+        ? horasRestantes.toFixed(horasRestantes % 1 === 0 ? 0 : 1)
+        : '0') + 'h'
     : null
 
   return (
-    <div
-      className={cn(
-        'px-1.5 pt-1.5 pb-1 border-b border-gray-100 shrink-0',
-        !esDelMes && 'opacity-40'
-      )}
-    >
-      <div className="flex items-start justify-between gap-1">
-        <div
+    <div className="flex items-center justify-end px-1.5 py-1 border-b border-black/[0.06] shrink-0 min-h-[24px]">
+      {horasStr !== null && (
+        <span
           className={cn(
-            'w-7 h-7 flex items-center justify-center rounded-full text-sm font-semibold leading-none',
-            esHoy && esDelMes
-              ? 'bg-indigo-600 text-white'
-              : esDelMes
-                ? 'text-gray-700'
-                : 'text-gray-300'
+            'text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none',
+            fondoColor,
+            textoColor
           )}
         >
-          {numeroDia}
-        </div>
-        {horasLibres !== null && (
-          <span className="text-[10px] text-gray-400 leading-none mt-1.5 shrink-0">
-            {horasLibres.toFixed(0)}h
-          </span>
-        )}
-      </div>
+          {horasStr} libres
+        </span>
+      )}
     </div>
   )
 }

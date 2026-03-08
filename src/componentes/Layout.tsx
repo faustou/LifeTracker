@@ -6,17 +6,35 @@ import {
   DragStartEvent,
   MouseSensor,
   TouchSensor,
+  pointerWithin,
   useSensor,
   useSensors,
+  type Modifier,
 } from '@dnd-kit/core'
+import { getEventCoordinates } from '@dnd-kit/utilities'
 import { Settings, LogOut, Menu } from 'lucide-react'
 import PanelActividades from './Actividades/PanelActividades'
 import CalendarioMensual from './Calendario/CalendarioMensual'
 import ModalConfiguracion from './ModalConfiguracion'
+import PillDrag from './Actividades/PillDrag'
 import { useAppStore } from '@/stores/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import type { Actividad, Completado } from '@/tipos'
+
+const snapToCursor: Modifier = ({ activatorEvent, draggingNodeRect, transform }) => {
+  if (draggingNodeRect && activatorEvent) {
+    const coords = getEventCoordinates(activatorEvent)
+    if (coords) {
+      return {
+        ...transform,
+        x: transform.x + coords.x - draggingNodeRect.left - draggingNodeRect.width / 2,
+        y: transform.y + coords.y - draggingNodeRect.top - draggingNodeRect.height / 2,
+      }
+    }
+  }
+  return transform
+}
 
 export default function Layout() {
   const [modalConfigAbierto, setModalConfigAbierto] = useState(false)
@@ -50,6 +68,12 @@ export default function Layout() {
     if (data?.type === 'completado' && data.completado) setArrastrandoCompletado(data.completado)
   }
 
+  const handleDragCancel = () => {
+    document.body.style.overflow = ''
+    setArrastrandoActividad(null)
+    setArrastrandoCompletado(null)
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
     document.body.style.overflow = ''
     const { active, over } = event
@@ -80,7 +104,7 @@ export default function Layout() {
     : null
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
       <div className="flex flex-col h-screen">
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-2 border-b border-gray-800 bg-gray-900 shrink-0">
@@ -165,26 +189,9 @@ export default function Layout() {
       </div>
 
       {/* Preview de arrastre */}
-      <DragOverlay dropAnimation={null}>
-        {actividadOverlay && (
-          <div
-            className="px-3 py-2 rounded-xl text-sm font-medium text-white shadow-2xl cursor-grabbing opacity-90 pointer-events-none"
-            style={{ backgroundColor: actividadOverlay.color }}
-          >
-            {actividadOverlay.icono} {actividadOverlay.nombre}
-          </div>
-        )}
-        {completadoOverlay && (
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-white shadow-2xl cursor-grabbing opacity-90 pointer-events-none"
-            style={{ backgroundColor: completadoOverlay.color }}
-          >
-            {completadoOverlay.icono && (
-              <span className="text-base leading-none">{completadoOverlay.icono}</span>
-            )}
-            {completadoOverlay.nombre}
-          </div>
-        )}
+      <DragOverlay adjustScale={false} dropAnimation={null} modifiers={[snapToCursor]}>
+        {actividadOverlay && <PillDrag actividad={actividadOverlay} />}
+        {completadoOverlay && <PillDrag actividad={completadoOverlay} />}
       </DragOverlay>
     </DndContext>
   )

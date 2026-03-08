@@ -1,5 +1,4 @@
 import { useDraggable } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
@@ -16,7 +15,7 @@ export default function ChipCompletado({ completado, actividad }: Props) {
   const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null)
   const chipRef = useRef<HTMLDivElement | null>(null)
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: completado.id,
     data: { type: 'completado', completado },
   })
@@ -58,10 +57,7 @@ export default function ChipCompletado({ completado, actividad }: Props) {
     <>
       <div
         ref={setRefs}
-        style={{
-          transform: CSS.Translate.toString(transform),
-          backgroundColor: actividad.color,
-        }}
+        style={{ backgroundColor: actividad.color }}
         {...listeners}
         {...attributes}
         onClick={handleClick}

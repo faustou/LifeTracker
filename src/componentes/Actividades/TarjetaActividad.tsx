@@ -1,5 +1,4 @@
 import { useDraggable } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
 import { Check, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Actividad } from '@/tipos'
@@ -12,12 +11,11 @@ interface Props {
 }
 
 export default function TarjetaActividad({ actividad, completadosSemana, onEditar, compacta }: Props) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: actividad.id,
     data: { type: 'actividad', actividad },
   })
 
-  const style = { transform: CSS.Translate.toString(transform) }
   const metaCumplida = completadosSemana >= actividad.meta_semanal
   const porcentaje = Math.min(100, (completadosSemana / actividad.meta_semanal) * 100)
 
@@ -26,7 +24,6 @@ export default function TarjetaActividad({ actividad, completadosSemana, onEdita
     return (
       <div
         ref={setNodeRef}
-        style={style}
         {...listeners}
         {...attributes}
         className={cn(
@@ -59,7 +56,6 @@ export default function TarjetaActividad({ actividad, completadosSemana, onEdita
   return (
     <div
       ref={setNodeRef}
-      style={style}
       {...listeners}
       {...attributes}
       className={cn(

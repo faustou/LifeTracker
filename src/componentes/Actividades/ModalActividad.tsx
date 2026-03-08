@@ -86,9 +86,26 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-md bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+    // Overlay: en mobile alinea al fondo, en desktop centra
+    <div
+      className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"
+      onClick={e => { if (e.target === e.currentTarget) onCerrar() }}
+    >
+      {/* Modal */}
+      <div
+        className={cn(
+          'w-full flex flex-col bg-gray-900 border border-gray-700 shadow-2xl',
+          // Mobile: bottom sheet
+          'h-[90vh] rounded-t-2xl animate-slide-up',
+          // Desktop: modal centrado normal
+          'sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl sm:animate-none',
+        )}
+      >
+        {/* Handle — solo mobile */}
+        <div className="mx-auto w-10 h-1 bg-gray-700 rounded-full mt-2.5 mb-1 sm:hidden shrink-0" />
+
+        {/* Header fijo */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800 shrink-0">
           <h2 className="text-base font-semibold text-white">
             {existente ? 'Editar actividad' : 'Nueva actividad'}
           </h2>
@@ -100,7 +117,12 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        {/* Cuerpo scrolleable */}
+        <form
+          id="form-actividad"
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0"
+        >
           {/* Nombre */}
           <div>
             <label className="block text-xs text-gray-400 mb-1.5">Nombre</label>
@@ -108,6 +130,7 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
               type="text"
               value={form.nombre}
               onChange={e => set('nombre', e.target.value)}
+              onFocus={e => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
               required
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
               placeholder="Ej: Estudiar ingles"
@@ -145,6 +168,7 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
                 type="number"
                 value={form.duracion_minutos}
                 onChange={e => set('duracion_minutos', e.target.value)}
+                onFocus={e => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                 onBlur={e => {
                   const v = parseInt(e.target.value)
                   if (isNaN(v) || v < 5) set('duracion_minutos', '5')
@@ -161,6 +185,7 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
                 type="number"
                 value={form.meta_semanal}
                 onChange={e => set('meta_semanal', e.target.value)}
+                onFocus={e => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                 onBlur={e => {
                   const v = parseInt(e.target.value)
                   if (isNaN(v) || v < 1) set('meta_semanal', '1')
@@ -219,34 +244,36 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
               {error}
             </p>
           )}
+        </form>
 
-          <div className="flex gap-2 pt-1">
-            {existente && (
-              <button
-                type="button"
-                onClick={handleEliminar}
-                className="p-2 rounded-lg hover:bg-red-950/40 text-gray-600 hover:text-red-400 transition-colors"
-                title="Eliminar actividad"
-              >
-                <Trash2 size={15} />
-              </button>
-            )}
+        {/* Footer fijo */}
+        <div className="px-5 py-4 border-t border-gray-800 flex gap-2 shrink-0">
+          {existente && (
             <button
               type="button"
-              onClick={onCerrar}
-              className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors"
+              onClick={handleEliminar}
+              className="p-2 rounded-lg hover:bg-red-950/40 text-gray-600 hover:text-red-400 transition-colors"
+              title="Eliminar actividad"
             >
-              Cancelar
+              <Trash2 size={15} />
             </button>
-            <button
-              type="submit"
-              disabled={guardando || !form.nombre.trim()}
-              className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              {guardando ? 'Guardando...' : existente ? 'Guardar cambios' : 'Crear'}
-            </button>
-          </div>
-        </form>
+          )}
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="form-actividad"
+            disabled={guardando || !form.nombre.trim()}
+            className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            {guardando ? 'Guardando...' : existente ? 'Guardar cambios' : 'Crear'}
+          </button>
+        </div>
       </div>
     </div>
   )

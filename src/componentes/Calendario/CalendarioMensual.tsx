@@ -6,6 +6,7 @@ import {
   eachDayOfInterval,
   format,
   isSameMonth,
+  isWithinInterval,
   parseISO,
 } from 'date-fns'
 import ColumnaDia from '../ColumnaDia/ColumnaDia'
@@ -24,6 +25,16 @@ export default function CalendarioMensual() {
   })
 
   const numSemanas = diasGrilla.length / 7
+
+  // Semana activa: solo cuando el mes visible contiene el mes actual
+  const hoy = new Date()
+  const mesActualEsElDeHoy = isSameMonth(fechaMes, hoy)
+  const inicioSemanaActiva = startOfWeek(hoy, { weekStartsOn: 1 })
+  const finSemanaActiva = endOfWeek(hoy, { weekStartsOn: 1 })
+
+  const esSemanaActiva = (dia: Date) =>
+    mesActualEsElDeHoy &&
+    isWithinInterval(dia, { start: inicioSemanaActiva, end: finSemanaActiva })
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-white">
@@ -57,6 +68,7 @@ export default function CalendarioMensual() {
               actividades={actividades}
               configuracion={configuracion}
               esDelMes={esDelMes}
+              esSemanaActiva={esSemanaActiva(dia)}
             />
           )
         })}
