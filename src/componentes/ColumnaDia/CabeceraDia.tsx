@@ -1,5 +1,4 @@
 import { format, isToday, parseISO } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import type { ConfiguracionUsuario } from '@/tipos'
 
