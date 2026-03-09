@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import { useAppStore } from '@/stores/useAppStore'
 import { COLORES_ACTIVIDAD, ICONOS_DEFAULT } from '@/tipos'
-import type { CrearActividadPayload } from '@/tipos'
+import type { CrearActividadPayload, TipoActividad } from '@/tipos'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
 // Estado interno con strings para los campos numericos (permite borrar libremente)
 interface FormState {
   nombre: string
-  tipo: 'tarea' | 'habito'
+  tipo: TipoActividad
   duracion_minutos: string
   meta_semanal: string
   color: string
@@ -37,7 +37,7 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
     existente
       ? {
           nombre: existente.nombre,
-          tipo: existente.tipo,
+          tipo: existente.tipo as TipoActividad,
           duracion_minutos: String(existente.duracion_minutos),
           color: existente.color,
           icono: existente.icono ?? '',
@@ -63,7 +63,7 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
         color: form.color,
         icono: form.icono?.trim() || undefined,
         duracion_minutos: Math.max(5, Math.min(480, parseInt(form.duracion_minutos) || 30)),
-        meta_semanal: Math.max(1, Math.min(7, parseInt(form.meta_semanal) || 1)),
+        meta_semanal: form.tipo === 'evento' ? 1 : Math.max(1, Math.min(7, parseInt(form.meta_semanal) || 1)),
       }
       if (existente) {
         await actualizarActividad(existente.id, payload)
@@ -142,28 +142,32 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
           <div>
             <label className="block text-xs text-gray-400 mb-1.5">Tipo</label>
             <div className="flex gap-2">
-              {(['tarea', 'habito'] as const).map(tipo => (
+              {([
+                { value: 'tarea', label: 'Tarea' },
+                { value: 'habito', label: 'Hábito' },
+                { value: 'evento', label: 'Evento/Turno' },
+              ] as { value: TipoActividad; label: string }[]).map(({ value, label }) => (
                 <button
-                  key={tipo}
+                  key={value}
                   type="button"
-                  onClick={() => set('tipo', tipo)}
+                  onClick={() => set('tipo', value)}
                   className={cn(
                     'flex-1 py-2 rounded-lg text-sm font-medium border transition-colors',
-                    form.tipo === tipo
+                    form.tipo === value
                       ? 'bg-indigo-600 border-indigo-500 text-white'
                       : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
                   )}
                 >
-                  {tipo === 'tarea' ? 'Tarea' : 'Habito'}
+                  {label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Duracion y Meta */}
+          {/* Duracion (siempre) y Meta (solo tarea/habito) */}
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-1.5">Duracion (min)</label>
+              <label className="block text-xs text-gray-400 mb-1.5">Duración (min)</label>
               <input
                 type="number"
                 value={form.duracion_minutos}
@@ -179,23 +183,25 @@ export default function ModalActividad({ actividadId, onCerrar }: Props) {
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
               />
             </div>
-            <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-1.5">Meta semanal</label>
-              <input
-                type="number"
-                value={form.meta_semanal}
-                onChange={e => set('meta_semanal', e.target.value)}
-                onFocus={e => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                onBlur={e => {
-                  const v = parseInt(e.target.value)
-                  if (isNaN(v) || v < 1) set('meta_semanal', '1')
-                  else if (v > 7) set('meta_semanal', '7')
-                }}
-                min={1}
-                max={7}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
-              />
-            </div>
+            {form.tipo !== 'evento' && (
+              <div className="flex-1">
+                <label className="block text-xs text-gray-400 mb-1.5">Meta semanal</label>
+                <input
+                  type="number"
+                  value={form.meta_semanal}
+                  onChange={e => set('meta_semanal', e.target.value)}
+                  onFocus={e => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  onBlur={e => {
+                    const v = parseInt(e.target.value)
+                    if (isNaN(v) || v < 1) set('meta_semanal', '1')
+                    else if (v > 7) set('meta_semanal', '7')
+                  }}
+                  min={1}
+                  max={7}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+            )}
           </div>
 
           {/* Color */}

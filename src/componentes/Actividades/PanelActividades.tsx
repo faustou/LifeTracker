@@ -28,7 +28,8 @@ export default function PanelActividades({ modoMobile, expandido, onExpandir, on
   const [modalAbierto, setModalAbierto] = useState(false)
   const [actividadEditandoId, setActividadEditandoId] = useState<string | null>(null)
 
-  const actividadesActivas = actividades.filter(a => !a.archivada)
+  const actividadesActivas = actividades.filter(a => !a.archivada && a.tipo !== 'evento')
+  const eventosActivos = actividades.filter(a => !a.archivada && a.tipo === 'evento')
 
   const abrirCrear = () => {
     setActividadEditandoId(null)
@@ -81,7 +82,7 @@ export default function PanelActividades({ modoMobile, expandido, onExpandir, on
 
         {/* Lista horizontal de tarjetas compactas */}
         <div className="flex gap-2 px-3 pb-3 overflow-x-auto overscroll-x-contain">
-          {actividadesActivas.length === 0 && (
+          {actividadesActivas.length === 0 && eventosActivos.length === 0 && (
             <p className="text-gray-600 text-xs py-2">Crea una actividad y arrastrala al calendario.</p>
           )}
           {actividadesActivas.map(actividad => {
@@ -101,6 +102,20 @@ export default function PanelActividades({ modoMobile, expandido, onExpandir, on
               />
             )
           })}
+          {eventosActivos.length > 0 && actividadesActivas.length > 0 && (
+            <div className="w-px bg-gray-700 self-stretch mx-1 shrink-0" />
+          )}
+          {eventosActivos.map(actividad => (
+            <TarjetaActividad
+              key={actividad.id}
+              actividad={actividad}
+              cumplidosSemana={0}
+              planeadosSemana={0}
+              racha={0}
+              onEditar={() => abrirEditar(actividad.id)}
+              compacta
+            />
+          ))}
         </div>
 
         {modalAbierto && (
@@ -157,6 +172,26 @@ export default function PanelActividades({ modoMobile, expandido, onExpandir, on
             />
           )
         })}
+
+        {eventosActivos.length > 0 && (
+          <>
+            <div className="flex items-center gap-2 pt-1">
+              <div className="flex-1 h-px bg-gray-800" />
+              <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Eventos</span>
+              <div className="flex-1 h-px bg-gray-800" />
+            </div>
+            {eventosActivos.map(actividad => (
+              <TarjetaActividad
+                key={actividad.id}
+                actividad={actividad}
+                cumplidosSemana={0}
+                planeadosSemana={0}
+                racha={0}
+                onEditar={() => abrirEditar(actividad.id)}
+              />
+            ))}
+          </>
+        )}
       </div>
 
       {modalAbierto && (

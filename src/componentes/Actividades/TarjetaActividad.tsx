@@ -32,6 +32,11 @@ export default function TarjetaActividad({ actividad, cumplidosSemana, planeados
   const pctCumplidos = Math.min(100, (cumplidosSemana / actividad.meta_semanal) * 100)
   const pctPlaneados = Math.min(100 - pctCumplidos, (planeadosSemana / actividad.meta_semanal) * 100)
 
+  const esEvento = actividad.tipo === 'evento'
+  const duracionLabel = actividad.duracion_minutos >= 60
+    ? `${(actividad.duracion_minutos / 60).toFixed(1)}h`
+    : `${actividad.duracion_minutos}min`
+
   // Tarjeta compacta horizontal para mobile bottom sheet
   if (compacta) {
     return (
@@ -41,9 +46,11 @@ export default function TarjetaActividad({ actividad, cumplidosSemana, planeados
         {...attributes}
         className={cn(
           'flex flex-col items-center gap-1.5 p-2 rounded-xl border cursor-grab select-none shrink-0 w-[72px] transition-all',
-          metaCumplida
-            ? 'border-green-600/50 bg-green-950/30'
-            : 'border-gray-700/60 bg-gray-800/50',
+          esEvento
+            ? 'border-gray-600/50 bg-gray-800/40'
+            : metaCumplida
+              ? 'border-green-600/50 bg-green-950/30'
+              : 'border-gray-700/60 bg-gray-800/50',
           isDragging && 'opacity-30 cursor-grabbing'
         )}
       >
@@ -56,10 +63,15 @@ export default function TarjetaActividad({ actividad, cumplidosSemana, planeados
         <p className="text-[10px] text-gray-300 truncate w-full text-center leading-tight">
           {actividad.nombre}
         </p>
-        <div className="w-full h-0.5 bg-gray-700 rounded-full overflow-hidden flex">
-          <div className="h-full" style={{ width: `${pctCumplidos}%`, backgroundColor: actividad.color }} />
-          <div className="h-full opacity-30" style={{ width: `${pctPlaneados}%`, backgroundColor: actividad.color }} />
-        </div>
+        {!esEvento && (
+          <div className="w-full h-0.5 bg-gray-700 rounded-full overflow-hidden flex">
+            <div className="h-full" style={{ width: `${pctCumplidos}%`, backgroundColor: actividad.color }} />
+            <div className="h-full opacity-30" style={{ width: `${pctPlaneados}%`, backgroundColor: actividad.color }} />
+          </div>
+        )}
+        {esEvento && (
+          <p className="text-[9px] text-gray-500">{duracionLabel}</p>
+        )}
       </div>
     )
   }
@@ -96,14 +108,11 @@ export default function TarjetaActividad({ actividad, cumplidosSemana, planeados
           </div>
 
           <div className="text-xs text-gray-500 mt-0.5">
-            {actividad.duracion_minutos >= 60
-              ? `${(actividad.duracion_minutos / 60).toFixed(1)}h`
-              : `${actividad.duracion_minutos}min`}
-            {' · '}
-            {actividad.meta_semanal}x/sem
+            {duracionLabel}
+            {!esEvento && <>{' · '}{actividad.meta_semanal}x/sem</>}
           </div>
 
-          {racha >= 1 && (
+          {!esEvento && racha >= 1 && (
             <div className="flex items-center gap-1.5 mt-0.5">
               <p className="text-xs font-medium text-orange-500">
                 {icoRacha(racha)} {racha} día{racha > 1 ? 's' : ''} de racha
@@ -138,7 +147,7 @@ export default function TarjetaActividad({ actividad, cumplidosSemana, planeados
             </div>
           )}
 
-          <div className="mt-2">
+          {!esEvento && <div className="mt-2">
             {metaCumplida ? (
               <span className="text-xs font-semibold text-green-400">COMPLETO</span>
             ) : (
@@ -159,7 +168,7 @@ export default function TarjetaActividad({ actividad, cumplidosSemana, planeados
                 )}
               </>
             )}
-          </div>
+          </div>}
         </div>
       </div>
 

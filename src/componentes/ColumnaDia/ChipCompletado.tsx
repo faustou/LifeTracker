@@ -65,6 +65,7 @@ export default function ChipCompletado({ completado, actividad }: Props) {
     : `${actividad.duracion_minutos}min`
 
   const tieneIcono = Boolean(actividad.icono)
+  const esEvento = actividad.tipo === 'evento'
 
   const longPressProps = lpHandlers
 
@@ -83,7 +84,8 @@ export default function ChipCompletado({ completado, actividad }: Props) {
         onClick={handleClick}
         className={cn(
           'group relative flex items-center justify-center cursor-grab select-none transition-opacity',
-          tieneIcono ? 'h-5 w-5 rounded' : 'h-5 w-5 rounded-full',
+          // Eventos siempre rounded (nunca rounded-full), tareas/habitos según icono
+          esEvento ? 'h-5 w-5 rounded' : tieneIcono ? 'h-5 w-5 rounded' : 'h-5 w-5 rounded-full',
           esCumplido ? '' : 'border-2',
           isDragging ? 'opacity-20 cursor-grabbing' : 'hover:brightness-110',
           'min-h-[20px] min-w-[20px] md:min-h-0 md:min-w-0'
@@ -93,6 +95,10 @@ export default function ChipCompletado({ completado, actividad }: Props) {
           <span className={cn('text-[10px] leading-none', !esCumplido && 'opacity-60')}>
             {actividad.icono}
           </span>
+        )}
+        {/* Indicador de evento — pequeño 📅 en la esquina si no tiene icono */}
+        {esEvento && !tieneIcono && (
+          <span className="text-[7px] leading-none">📅</span>
         )}
 
         {/* Tilde cumplido */}

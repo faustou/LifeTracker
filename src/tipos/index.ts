@@ -1,4 +1,4 @@
-export type TipoActividad = 'tarea' | 'habito'
+export type TipoActividad = 'tarea' | 'habito' | 'evento'
 export type EstadoCompletado = 'planeado' | 'cumplido'
 
 export interface Actividad {
