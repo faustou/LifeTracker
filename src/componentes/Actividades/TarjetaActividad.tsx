@@ -1,23 +1,36 @@
 import { useDraggable } from '@dnd-kit/core'
+import { useState } from 'react'
 import { Check, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAppStore } from '@/stores/useAppStore'
 import type { Actividad } from '@/tipos'
 
 interface Props {
   actividad: Actividad
-  completadosSemana: number
+  cumplidosSemana: number
+  planeadosSemana: number
+  racha: number
   onEditar: () => void
   compacta?: boolean
 }
 
-export default function TarjetaActividad({ actividad, completadosSemana, onEditar, compacta }: Props) {
+function icoRacha(racha: number) {
+  if (racha >= 30) return '🔥🔥🔥'
+  if (racha >= 7) return '🔥🔥'
+  return '🔥'
+}
+
+export default function TarjetaActividad({ actividad, cumplidosSemana, planeadosSemana, racha, onEditar, compacta }: Props) {
+  const { borrarRacha } = useAppStore()
+  const [confirmandoBorrar, setConfirmandoBorrar] = useState(false)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: actividad.id,
     data: { type: 'actividad', actividad },
   })
 
-  const metaCumplida = completadosSemana >= actividad.meta_semanal
-  const porcentaje = Math.min(100, (completadosSemana / actividad.meta_semanal) * 100)
+  const metaCumplida = cumplidosSemana >= actividad.meta_semanal
+  const pctCumplidos = Math.min(100, (cumplidosSemana / actividad.meta_semanal) * 100)
+  const pctPlaneados = Math.min(100 - pctCumplidos, (planeadosSemana / actividad.meta_semanal) * 100)
 
   // Tarjeta compacta horizontal para mobile bottom sheet
   if (compacta) {
@@ -43,11 +56,9 @@ export default function TarjetaActividad({ actividad, completadosSemana, onEdita
         <p className="text-[10px] text-gray-300 truncate w-full text-center leading-tight">
           {actividad.nombre}
         </p>
-        <div className="w-full h-0.5 bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full"
-            style={{ width: `${porcentaje}%`, backgroundColor: actividad.color }}
-          />
+        <div className="w-full h-0.5 bg-gray-700 rounded-full overflow-hidden flex">
+          <div className="h-full" style={{ width: `${pctCumplidos}%`, backgroundColor: actividad.color }} />
+          <div className="h-full opacity-30" style={{ width: `${pctPlaneados}%`, backgroundColor: actividad.color }} />
         </div>
       </div>
     )
@@ -92,21 +103,61 @@ export default function TarjetaActividad({ actividad, completadosSemana, onEdita
             {actividad.meta_semanal}x/sem
           </div>
 
+          {racha >= 1 && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <p className="text-xs font-medium text-orange-500">
+                {icoRacha(racha)} {racha} día{racha > 1 ? 's' : ''} de racha
+              </p>
+              {confirmandoBorrar ? (
+                <>
+                  <button
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); borrarRacha(actividad.id); setConfirmandoBorrar(false) }}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-red-600 text-white font-medium hover:bg-red-500 transition-colors"
+                  >
+                    Sí, borrar
+                  </button>
+                  <button
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); setConfirmandoBorrar(false) }}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-300 font-medium hover:bg-gray-600 transition-colors"
+                  >
+                    No
+                  </button>
+                </>
+              ) : (
+                <button
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={e => { e.stopPropagation(); setConfirmandoBorrar(true) }}
+                  className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+                  title="Borrar racha"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="mt-2">
             {metaCumplida ? (
               <span className="text-xs font-semibold text-green-400">COMPLETO</span>
             ) : (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{ width: `${porcentaje}%`, backgroundColor: actividad.color }}
-                  />
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden flex">
+                    <div className="h-full transition-all duration-300" style={{ width: `${pctCumplidos}%`, backgroundColor: actividad.color }} />
+                    <div className="h-full transition-all duration-300 opacity-30" style={{ width: `${pctPlaneados}%`, backgroundColor: actividad.color }} />
+                  </div>
+                  <span className="text-xs text-gray-500 tabular-nums shrink-0">
+                    {cumplidosSemana}/{actividad.meta_semanal}
+                  </span>
                 </div>
-                <span className="text-xs text-gray-500 tabular-nums shrink-0">
-                  {completadosSemana}/{actividad.meta_semanal}
-                </span>
-              </div>
+                {planeadosSemana > 0 && (
+                  <p className="text-[10px] text-gray-600">
+                    📅 {planeadosSemana} planeado{planeadosSemana > 1 ? 's' : ''}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

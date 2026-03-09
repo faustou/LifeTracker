@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/stores/useAppStore'
+import { usarLongPress } from '@/hooks/usarLongPress'
 import type { Completado, Actividad } from '@/tipos'
 
 interface Props {
@@ -11,16 +12,28 @@ interface Props {
 }
 
 export default function ChipCompletado({ completado, actividad }: Props) {
-  const { quitarCompletado } = useAppStore()
+  const { quitarCompletado, confirmarCompletado, desconfirmarCompletado } = useAppStore()
   const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null)
   const chipRef = useRef<HTMLDivElement | null>(null)
+
+  const esCumplido = completado.estado === 'cumplido'
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: completado.id,
     data: { type: 'completado', completado },
   })
 
-  // Combinar ref de dnd-kit con el ref local para calcular posicion del popup
+  // Long press: planeado → cumplido, cumplido → planeado
+  const { presionando, suprimirClickRef, cancelar, handlers: lpHandlers } = usarLongPress(
+    () => esCumplido ? desconfirmarCompletado(completado.id) : confirmarCompletado(completado.id),
+    500
+  )
+
+  // Cancelar long press si el drag empieza
+  useEffect(() => {
+    if (isDragging) cancelar()
+  }, [isDragging, cancelar])
+
   const setRefs = useCallback((node: HTMLDivElement | null) => {
     chipRef.current = node
     setNodeRef(node)
@@ -28,6 +41,7 @@ export default function ChipCompletado({ completado, actividad }: Props) {
 
   const handleClick = (e: React.MouseEvent) => {
     if (isDragging) return
+    if (suprimirClickRef.current) { suprimirClickRef.current = false; return }
     e.stopPropagation()
     if (popupPos) { setPopupPos(null); return }
     const rect = chipRef.current?.getBoundingClientRect()
@@ -39,7 +53,6 @@ export default function ChipCompletado({ completado, actividad }: Props) {
     }
   }
 
-  // Cerrar popup al hacer click fuera
   useEffect(() => {
     if (!popupPos) return
     const close = () => setPopupPos(null)
@@ -53,27 +66,65 @@ export default function ChipCompletado({ completado, actividad }: Props) {
 
   const tieneIcono = Boolean(actividad.icono)
 
+  const longPressProps = lpHandlers
+
   return (
     <>
       <div
         ref={setRefs}
-        style={{ backgroundColor: actividad.color }}
+        style={
+          esCumplido
+            ? { backgroundColor: actividad.color }
+            : { borderColor: actividad.color, backgroundColor: 'transparent' }
+        }
         {...listeners}
         {...attributes}
+        {...longPressProps}
         onClick={handleClick}
         className={cn(
           'group relative flex items-center justify-center cursor-grab select-none transition-opacity',
           tieneIcono ? 'h-5 w-5 rounded' : 'h-5 w-5 rounded-full',
+          esCumplido ? '' : 'border-2',
           isDragging ? 'opacity-20 cursor-grabbing' : 'hover:brightness-110',
-          // Area de tap minima para mobile
           'min-h-[20px] min-w-[20px] md:min-h-0 md:min-w-0'
         )}
       >
         {tieneIcono && (
-          <span className="text-[10px] leading-none">{actividad.icono}</span>
+          <span className={cn('text-[10px] leading-none', !esCumplido && 'opacity-60')}>
+            {actividad.icono}
+          </span>
         )}
 
-        {/* Tooltip — solo desktop, hover con delay 300ms */}
+        {/* Tilde cumplido */}
+        {esCumplido && (
+          <span className="absolute top-0 right-0.5 text-white text-[8px] font-bold leading-none">
+            ✓
+          </span>
+        )}
+
+        {/* Anillo de progreso long press */}
+        {presionando && (
+          <svg
+            width="20"
+            height="20"
+            className="absolute inset-0 pointer-events-none animate-ring-progress"
+            style={{ animation: 'ring-progress 500ms linear forwards' }}
+          >
+            <circle
+              cx="10"
+              cy="10"
+              r="8"
+              fill="none"
+              stroke={actividad.color}
+              strokeWidth="2"
+              strokeDasharray="50.3"
+              strokeLinecap="round"
+              transform="rotate(-90 10 10)"
+            />
+          </svg>
+        )}
+
+        {/* Tooltip desktop */}
         <div
           className={cn(
             'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50',
@@ -84,11 +135,14 @@ export default function ChipCompletado({ completado, actividad }: Props) {
           )}
         >
           {actividad.nombre} · {duracionLabel}
+          <span className="ml-1 opacity-60">
+            {esCumplido ? '(mantené para destilar)' : '(mantené para confirmar)'}
+          </span>
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-[3px] border-transparent border-t-gray-900" />
         </div>
       </div>
 
-      {/* Popup click/tap — nombre + duracion + boton Quitar */}
+      {/* Popup click/tap */}
       {popupPos && createPortal(
         <div
           style={{ top: popupPos.top, left: popupPos.left, position: 'fixed' }}
@@ -106,9 +160,27 @@ export default function ChipCompletado({ completado, actividad }: Props) {
               <p className="text-sm font-semibold text-gray-900 leading-tight truncate">
                 {actividad.nombre}
               </p>
-              <p className="text-xs text-gray-400">{duracionLabel}</p>
+              <p className="text-xs text-gray-400">
+                {duracionLabel} · {esCumplido ? 'Cumplido' : 'Planeado'}
+              </p>
             </div>
           </div>
+
+          {esCumplido ? (
+            <button
+              onClick={() => { desconfirmarCompletado(completado.id); setPopupPos(null) }}
+              className="w-full py-1.5 text-xs font-medium text-amber-600 hover:bg-amber-50 rounded-lg transition-colors mb-1"
+            >
+              Marcar como planeado
+            </button>
+          ) : (
+            <button
+              onClick={() => { confirmarCompletado(completado.id); setPopupPos(null) }}
+              className="w-full py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors mb-1"
+            >
+              Marcar como cumplido
+            </button>
+          )}
           <button
             onClick={() => { quitarCompletado(completado.id); setPopupPos(null) }}
             className="w-full py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"

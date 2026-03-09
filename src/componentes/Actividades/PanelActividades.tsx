@@ -5,6 +5,7 @@ import { es } from 'date-fns/locale'
 import TarjetaActividad from './TarjetaActividad'
 import ModalActividad from './ModalActividad'
 import { useAppStore } from '@/stores/useAppStore'
+import { calcularRacha } from '@/lib/utilidadesFecha'
 
 interface Props {
   modoMobile?: boolean
@@ -84,12 +85,17 @@ export default function PanelActividades({ modoMobile, expandido, onExpandir, on
             <p className="text-gray-600 text-xs py-2">Crea una actividad y arrastrala al calendario.</p>
           )}
           {actividadesActivas.map(actividad => {
-            const cantidad = completadosSemana.filter(c => c.actividad_id === actividad.id).length
+            const deEstaActividad = completadosSemana.filter(c => c.actividad_id === actividad.id)
+            const cumplidos = deEstaActividad.filter(c => c.estado === 'cumplido').length
+            const planeados = deEstaActividad.filter(c => c.estado === 'planeado').length
+            const racha = calcularRacha(completados, actividad.id)
             return (
               <TarjetaActividad
                 key={actividad.id}
                 actividad={actividad}
-                completadosSemana={cantidad}
+                cumplidosSemana={cumplidos}
+                planeadosSemana={planeados}
+                racha={racha}
                 onEditar={() => abrirEditar(actividad.id)}
                 compacta
               />
@@ -136,12 +142,17 @@ export default function PanelActividades({ modoMobile, expandido, onExpandir, on
         )}
 
         {actividadesActivas.map(actividad => {
-          const cantidad = completadosSemana.filter(c => c.actividad_id === actividad.id).length
+          const deEstaActividad = completadosSemana.filter(c => c.actividad_id === actividad.id)
+          const cumplidos = deEstaActividad.filter(c => c.estado === 'cumplido').length
+          const planeados = deEstaActividad.filter(c => c.estado === 'planeado').length
+          const racha = calcularRacha(completados, actividad.id)
           return (
             <TarjetaActividad
               key={actividad.id}
               actividad={actividad}
-              completadosSemana={cantidad}
+              cumplidosSemana={cumplidos}
+              planeadosSemana={planeados}
+              racha={racha}
               onEditar={() => abrirEditar(actividad.id)}
             />
           )

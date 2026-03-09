@@ -63,6 +63,18 @@ export const api = {
         body: JSON.stringify(payload),
       }),
 
+    confirmar: (id: string): Promise<Completado> =>
+      fetchConAuth(`/api/completados/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ estado: 'cumplido' }),
+      }),
+
+    desconfirmar: (id: string): Promise<Completado> =>
+      fetchConAuth(`/api/completados/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ estado: 'planeado' }),
+      }),
+
     eliminar: (id: string): Promise<void> =>
       fetchConAuth(`/api/completados/${id}`, { method: 'DELETE' }),
   },

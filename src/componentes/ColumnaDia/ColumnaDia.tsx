@@ -18,11 +18,13 @@ interface Props {
 export default function ColumnaDia({ fecha, completadosDia, actividades, configuracion, esDelMes = true, esSemanaActiva }: Props) {
   const { isOver, setNodeRef } = useDroppable({ id: fecha, disabled: !esDelMes })
 
-  // Color por horas: solo en días de la semana activa (la que muestra el panel)
-  const horasRestantes = esDelMes && esSemanaActiva && configuracion
+  // Color por horas: todos los días del mes visible
+  const horasRestantes = esDelMes && configuracion
     ? calcularHorasRestantes(fecha, completadosDia, actividades, configuracion)
     : null
-  const colores = horasRestantes !== null ? colorPorHoras(horasRestantes) : null
+  // Colores solo en semana activa; el badge de horas se muestra en todos los días del mes
+  const colores = horasRestantes !== null && esSemanaActiva ? colorPorHoras(horasRestantes) : null
+  const badgeHoras = horasRestantes !== null ? colorPorHoras(horasRestantes) : null
 
   const fechaObj = parseISO(fecha)
   const esHoy = isToday(fechaObj)
@@ -44,11 +46,11 @@ export default function ColumnaDia({ fecha, completadosDia, actividades, configu
                 : 'bg-gray-50/60 border-gray-100'
       )}
     >
-      {/* Horas disponibles — solo semana activa, badge pill con border-b */}
+      {/* Horas disponibles — todos los días del mes visible */}
       <CabeceraDia
         horasRestantes={horasRestantes}
-        textoColor={colores?.texto ?? 'text-gray-400'}
-        fondoColor={colores?.fondo ?? ''}
+        textoColor={badgeHoras?.texto ?? 'text-gray-400'}
+        fondoColor={badgeHoras?.fondo ?? ''}
         esDelMes={esDelMes}
       />
 

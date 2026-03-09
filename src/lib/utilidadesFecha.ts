@@ -1,4 +1,4 @@
-import { getDay, parseISO } from 'date-fns'
+import { getDay, isSameDay, parseISO, startOfDay, subDays } from 'date-fns'
 import type { Completado, Actividad, ConfiguracionUsuario } from '@/tipos'
 
 export function calcularHorasRestantes(
@@ -13,6 +13,35 @@ export function calcularHorasRestantes(
     return acc + (actividades.find(a => a.id === c.actividad_id)?.duracion_minutos ?? 0)
   }, 0) / 60
   return horasLibres - horasUsadas
+}
+
+export function calcularRacha(completados: Completado[], actividadId: string): number {
+  const fechasCumplidas = completados
+    .filter(c => c.actividad_id === actividadId && c.estado === 'cumplido')
+    .map(c => c.fecha_completado)
+
+  if (fechasCumplidas.length === 0) return 0
+
+  const hoy = startOfDay(new Date())
+  const ayer = subDays(hoy, 1)
+
+  const ordenadas = [...fechasCumplidas]
+    .map(f => parseISO(f))
+    .sort((a, b) => b.getTime() - a.getTime())
+
+  const tieneHoy = ordenadas.some(f => isSameDay(f, hoy))
+  let fechaEsperada = tieneHoy ? hoy : ayer
+
+  let racha = 0
+  for (const fecha of ordenadas) {
+    if (isSameDay(fecha, fechaEsperada)) {
+      racha++
+      fechaEsperada = subDays(fechaEsperada, 1)
+    } else if (fecha < fechaEsperada) {
+      break
+    }
+  }
+  return racha
 }
 
 export function colorPorHoras(horas: number): { fondo: string; texto: string; textoSuave: string } {

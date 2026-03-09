@@ -51,6 +51,7 @@ export default function Layout() {
 
   const [arrastrandoActividad, setArrastrandoActividad] = useState<Actividad | null>(null)
   const [arrastrandoCompletado, setArrastrandoCompletado] = useState<Completado | null>(null)
+  const [arrastrando, setArrastrando] = useState(false)
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
@@ -63,6 +64,7 @@ export default function Layout() {
 
   const handleDragStart = (event: DragStartEvent) => {
     document.body.style.overflow = 'hidden'
+    setArrastrando(true)
     const data = event.active.data.current as { type: string; actividad?: Actividad; completado?: Completado } | undefined
     if (data?.type === 'actividad' && data.actividad) setArrastrandoActividad(data.actividad)
     if (data?.type === 'completado' && data.completado) setArrastrandoCompletado(data.completado)
@@ -70,12 +72,14 @@ export default function Layout() {
 
   const handleDragCancel = () => {
     document.body.style.overflow = ''
+    setArrastrando(false)
     setArrastrandoActividad(null)
     setArrastrandoCompletado(null)
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
     document.body.style.overflow = ''
+    setArrastrando(false)
     const { active, over } = event
     const data = active.data.current as { type: string; actividad?: Actividad; completado?: Completado } | undefined
 
@@ -170,8 +174,13 @@ export default function Layout() {
           {/* Mobile: bottom sheet */}
           <div
             className={cn(
-              'absolute inset-x-0 bottom-0 z-50 md:hidden transition-transform duration-300',
-              panelAbierto ? 'translate-y-0' : 'translate-y-[calc(100%-3.5rem)]'
+              'absolute inset-x-0 bottom-0 z-50 md:hidden',
+              arrastrando
+                ? 'translate-y-full pointer-events-none transition-transform duration-150 ease-out'
+                : cn(
+                    'transition-transform duration-250 ease-out',
+                    panelAbierto ? 'translate-y-0' : 'translate-y-[calc(100%-3.5rem)]'
+                  )
             )}
           >
             <PanelActividades

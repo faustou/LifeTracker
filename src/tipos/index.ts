@@ -1,4 +1,5 @@
 export type TipoActividad = 'tarea' | 'habito'
+export type EstadoCompletado = 'planeado' | 'cumplido'
 
 export interface Actividad {
   id: string
@@ -21,6 +22,7 @@ export interface Completado {
   usuario_id: string
   fecha_completado: string   // 'YYYY-MM-DD'
   inicio_semana: string      // lunes de esa semana
+  estado: EstadoCompletado
   notas?: string
   creada_en: string
 }
@@ -92,7 +94,10 @@ export interface AppStore {
   actualizarActividad: (id: string, payload: Partial<CrearActividadPayload>) => Promise<void>
   eliminarActividad: (id: string) => Promise<void>
   agregarCompletado: (payload: CrearCompletadoPayload) => Promise<void>
+  confirmarCompletado: (completadoId: string) => Promise<void>
+  desconfirmarCompletado: (completadoId: string) => Promise<void>
   quitarCompletado: (completadoId: string) => Promise<void>
+  borrarRacha: (actividadId: string) => Promise<void>
   actualizarConfiguracion: (payload: ActualizarConfiguracionPayload) => Promise<void>
   navegarMes: (direccion: 'anterior' | 'siguiente') => void
 }

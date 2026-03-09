@@ -7,7 +7,10 @@ import {
   format,
   addMonths,
   subMonths,
+  subDays,
   parseISO,
+  isSameDay,
+  startOfDay,
   min,
   max,
 } from 'date-fns'
@@ -43,7 +46,9 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       const inicioSemanaHoy = startOfWeek(hoy, { weekStartsOn: 1 })
       const finSemanaHoy = endOfWeek(hoy, { weekStartsOn: 1 })
 
-      const desde = format(min([inicioGrilla, inicioSemanaHoy]), 'yyyy-MM-dd')
+      // 90 días atrás para calcular rachas largas
+      const hace90dias = subDays(hoy, 90)
+      const desde = format(min([inicioGrilla, inicioSemanaHoy, hace90dias]), 'yyyy-MM-dd')
       const hasta = format(max([finGrilla, finSemanaHoy]), 'yyyy-MM-dd')
 
       const [actividades, completados, configuracion] = await Promise.all([
@@ -103,6 +108,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       usuario_id: '',
       fecha_completado: payload.fecha_completado,
       inicio_semana: inicioSemana,
+      estado: 'planeado',
       notas: payload.notas,
       creada_en: new Date().toISOString(),
     }
@@ -114,6 +120,48 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       }))
     } catch (e) {
       set(s => ({ completados: s.completados.filter(c => c.id !== tempId) }))
+      throw e
+    }
+  },
+
+  confirmarCompletado: async (completadoId) => {
+    set(s => ({
+      completados: s.completados.map(c =>
+        c.id === completadoId ? { ...c, estado: 'cumplido' as const } : c
+      ),
+    }))
+    try {
+      const actualizado = await api.completados.confirmar(completadoId)
+      set(s => ({
+        completados: s.completados.map(c => c.id === completadoId ? actualizado : c),
+      }))
+    } catch (e) {
+      set(s => ({
+        completados: s.completados.map(c =>
+          c.id === completadoId ? { ...c, estado: 'planeado' as const } : c
+        ),
+      }))
+      throw e
+    }
+  },
+
+  desconfirmarCompletado: async (completadoId) => {
+    set(s => ({
+      completados: s.completados.map(c =>
+        c.id === completadoId ? { ...c, estado: 'planeado' as const } : c
+      ),
+    }))
+    try {
+      const actualizado = await api.completados.desconfirmar(completadoId)
+      set(s => ({
+        completados: s.completados.map(c => c.id === completadoId ? actualizado : c),
+      }))
+    } catch (e) {
+      set(s => ({
+        completados: s.completados.map(c =>
+          c.id === completadoId ? { ...c, estado: 'cumplido' as const } : c
+        ),
+      }))
       throw e
     }
   },
@@ -134,6 +182,37 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   actualizarConfiguracion: async (payload: ActualizarConfiguracionPayload) => {
     const actualizada = await api.configuracion.actualizar(payload)
     set({ configuracion: actualizada })
+  },
+
+  borrarRacha: async (actividadId) => {
+    const hoy = startOfDay(new Date())
+    const ayer = subDays(hoy, 1)
+
+    const cumplidos = get().completados
+      .filter(c => c.actividad_id === actividadId && c.estado === 'cumplido')
+      .map(c => ({ ...c, fechaObj: parseISO(c.fecha_completado) }))
+      .sort((a, b) => b.fechaObj.getTime() - a.fechaObj.getTime())
+
+    const tieneHoy = cumplidos.some(c => isSameDay(c.fechaObj, hoy))
+    let fechaEsperada = tieneHoy ? hoy : ayer
+
+    const streakIds: string[] = []
+    for (const c of cumplidos) {
+      if (isSameDay(c.fechaObj, fechaEsperada)) {
+        streakIds.push(c.id)
+        fechaEsperada = subDays(fechaEsperada, 1)
+      } else if (c.fechaObj < fechaEsperada) {
+        break
+      }
+    }
+
+    // Optimistic: marcar todos como planeado
+    set(s => ({
+      completados: s.completados.map(c =>
+        streakIds.includes(c.id) ? { ...c, estado: 'planeado' as const } : c
+      ),
+    }))
+    await Promise.all(streakIds.map(id => api.completados.desconfirmar(id)))
   },
 
   navegarMes: (direccion) => {
